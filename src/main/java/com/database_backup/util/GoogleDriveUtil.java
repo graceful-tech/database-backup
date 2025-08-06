@@ -11,6 +11,7 @@ import com.google.api.services.drive.model.File;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
@@ -21,17 +22,12 @@ public class GoogleDriveUtil {
 
 	private static final String APPLICATION_NAME = "Drive Backup App";
 	private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
+	private static final String CREDENTIAL_LOCATION = "C:\\credentials\\service-account-key.json";
 
 	private static Drive getDriveService() throws Exception {
 		logger.debug("GoogleDriveUtil :: getDriveService :: Entered");
 
-		// Load service account key
-		InputStream in = GoogleDriveUtil.class.getClassLoader().getResourceAsStream("service-account-key.json");
-		if (in == null) {
-			throw new RuntimeException("service-account-key.json not found in resources folder");
-		}
-
-		GoogleCredential credential = GoogleCredential.fromStream(in)
+		GoogleCredential credential = GoogleCredential.fromStream(new FileInputStream(CREDENTIAL_LOCATION))
 				.createScoped(Collections.singleton(DriveScopes.DRIVE));
 
 		logger.debug("GoogleDriveUtil :: getDriveService :: Exited");
@@ -40,22 +36,28 @@ public class GoogleDriveUtil {
 				.setApplicationName(APPLICATION_NAME).build();
 	}
 
-	public static void uploadFileToDrive(String filePath, String fileName) throws Exception {
+	public static void uploadFileToDrive(String filePath, String fileName) {
+		logger.debug("GoogleDriveUtil :: uploadFileToDrive :: Entered");
 		String folderId = "1WXul-mxVSy5jMJPZ51qZtiinfuSfWRDL";
 
-		Drive service = getDriveService();
+		try {
+			Drive service = getDriveService();
 
-		File fileMetadata = new File();
-		fileMetadata.setName(fileName);
+			File fileMetadata = new File();
+			fileMetadata.setName(fileName);
+			fileMetadata.setParents(Collections.singletonList(folderId));
 
-		fileMetadata.setParents(Collections.singletonList(folderId));
+			java.io.File filePathObj = new java.io.File(filePath);
+			FileContent mediaContent = new FileContent("files/zip", filePathObj);
 
-		java.io.File filePathObj = new java.io.File(filePath);
-		FileContent mediaContent = new FileContent("files/zip", filePathObj);
+			File uploadedFile = service.files().create(fileMetadata, mediaContent).setSupportsAllDrives(true)
+					.setFields("id").execute();
 
-		File uploadedFile = service.files().create(fileMetadata, mediaContent).setSupportsAllDrives(true)
-				.setFields("id").execute();
+			logger.debug("GoogleDriveUtil :: uploadFileToDrive :: Exited" + uploadedFile.getId());
 
-		logger.info("✅ File uploaded with ID: " + uploadedFile.getId());
+		} catch (Exception e) {
+			logger.error("GoogleDriveUtil :: uploadFileToDrive :: Error" + e);
+		}
 	}
+
 }

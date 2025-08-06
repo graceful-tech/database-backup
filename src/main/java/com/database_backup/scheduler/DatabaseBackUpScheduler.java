@@ -22,10 +22,6 @@ import com.database_backup.entity.customer.CustomerEntity;
 import com.database_backup.repository.CustomerRepository;
 import com.database_backup.util.GoogleDriveUtil;
 
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
-import jakarta.activation.*;
-
 @Component
 public class DatabaseBackUpScheduler {
 
@@ -34,8 +30,10 @@ public class DatabaseBackUpScheduler {
 
 	private static final Logger logger = LoggerFactory.getLogger(DatabaseBackUpScheduler.class);
 
-//	@Scheduled(cron = "0 0 9,13,17,21 ? * MON-SAT")
+	@Scheduled(cron = "0 0 9,13,17,21 ? * MON-SAT")
+//	@Scheduled(cron = "* */2 * * * *")
 	public void sendStatusUpdate() throws Exception {
+		logger.debug("DatabaseBackUpScheduler :: sendStatusUpdate :: Entered");
 
 		List<CustomerEntity> customers = customerRepository.getAllActiveCustomers();
 		for (CustomerEntity customer : customers) {
@@ -59,7 +57,7 @@ public class DatabaseBackUpScheduler {
 				zipDirectory(sqlPath, zipPath);
 
 				GoogleDriveUtil.uploadFileToDrive(zipPath, zipFileName);
-				logger.debug("Backup email sent successfully for tenant :" + customer.getTenant());
+				logger.debug("Backup File sent successfully for tenant :" + customer.getTenant());
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -68,6 +66,8 @@ public class DatabaseBackUpScheduler {
 
 	// Method to zip a directory
 	public static void zipDirectory(String sourcePath, String zipPath) throws IOException {
+		logger.debug("DatabaseBackUpScheduler :: zipDirectory :: Entered");
+
 		File file = new File(sourcePath);
 		try (FileOutputStream fos = new FileOutputStream(zipPath); ZipOutputStream zos = new ZipOutputStream(fos)) {
 			// for (File file : sourceFolder.listFiles()) {
@@ -85,6 +85,7 @@ public class DatabaseBackUpScheduler {
 			}
 			// }
 		}
+		logger.debug("DatabaseBackUpScheduler :: zipDirectory :: Exited");
 	}
 
 }
