@@ -8,6 +8,8 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
+import com.google.api.services.drive.model.FileList;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +17,9 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
+import java.util.List;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 public class GoogleDriveUtil {
 
@@ -57,6 +62,38 @@ public class GoogleDriveUtil {
 
 		} catch (Exception e) {
 			logger.error("GoogleDriveUtil :: uploadFileToDrive :: Error" + e);
+		}
+	}
+
+	static String folderId = "1WXul-mxVSy5jMJPZ51qZtiinfuSfWRDL";
+
+	public static void deleteOldFiles() throws Exception {
+		Drive driveService = getDriveService(); // your authenticated Drive service
+
+		// Get current time minus 7 days
+		Instant cutoffDate = Instant.now().minus(7, ChronoUnit.DAYS);
+
+		// Query to list all files in the given folder
+		String query = "'" + folderId + "' in parents and trashed = false";
+
+		FileList fileList = driveService.files().list().setQ(query).setFields("files(id, name, createdTime)")
+				.setSupportsAllDrives(true).setIncludeItemsFromAllDrives(true).execute();
+
+		List<File> files = fileList.getFiles();
+
+		if (files == null || files.isEmpty()) {
+			logger.debug("No files found in the folder.");
+			return;
+		}
+
+		for (File file : files) {
+			Instant fileCreated = Instant.parse(file.getCreatedTime().toString());
+			if (fileCreated.isBefore(cutoffDate)) {
+				logger.debug("Deleting file: " + file.getName() + " (Created: " + fileCreated + ")");
+				driveService.files().delete(file.getId()).setSupportsAllDrives(true).execute();
+			} else {
+				logger.debug("Keeping file: " + file.getName() + " (Created: " + fileCreated + ")");
+			}
 		}
 	}
 
