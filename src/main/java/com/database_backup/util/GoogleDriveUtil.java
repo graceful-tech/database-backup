@@ -2,6 +2,7 @@ package com.database_backup.util;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.FileContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
@@ -70,13 +71,12 @@ public class GoogleDriveUtil {
 	public static void deleteOldFiles() throws Exception {
 		Drive driveService = getDriveService(); // your authenticated Drive service
 
-		// Get current time minus 7 days
-		Instant cutoffDate = Instant.now().minus(7, ChronoUnit.DAYS);
+		// Delete files modified before 1 day
+		Instant cutoffDate = Instant.now().minus(1, ChronoUnit.DAYS);
 
-		// Query to list all files in the given folder
 		String query = "'" + folderId + "' in parents and trashed = false";
 
-		FileList fileList = driveService.files().list().setQ(query).setFields("files(id, name, createdTime)")
+		FileList fileList = driveService.files().list().setQ(query).setFields("files(id, name, modifiedTime)")
 				.setSupportsAllDrives(true).setIncludeItemsFromAllDrives(true).execute();
 
 		List<File> files = fileList.getFiles();
@@ -87,12 +87,20 @@ public class GoogleDriveUtil {
 		}
 
 		for (File file : files) {
-			Instant fileCreated = Instant.parse(file.getCreatedTime().toString());
-			if (fileCreated.isBefore(cutoffDate)) {
-				logger.debug("Deleting file: " + file.getName() + " (Created: " + fileCreated + ")");
-				driveService.files().delete(file.getId()).setSupportsAllDrives(true).execute();
+			Instant fileModified = Instant.parse(file.getModifiedTime().toString());
+			if (fileModified.isBefore(cutoffDate)) {
+				try {
+					driveService.files().delete(file.getId()).setSupportsAllDrives(true).execute();
+					logger.debug("Deleted file: " + file.getName());
+				} catch (GoogleJsonResponseException e) {
+					if (e.getStatusCode() == 404) {
+						logger.warn("File already deleted or not found: " + file.getId() + " (" + file.getName() + ")");
+					} else {
+						throw e; // rethrow other unexpected errors
+					}
+				}
 			} else {
-				logger.debug("Keeping file: " + file.getName() + " (Created: " + fileCreated + ")");
+				logger.debug("Keeping file: " + file.getName() + " (Modified: " + fileModified + ")");
 			}
 		}
 	}
