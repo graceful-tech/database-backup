@@ -93,7 +93,7 @@ public class DatabaseBackUpScheduler {
 		try {
 			GoogleDriveUtil.deleteOldFiles();
 		} catch (Exception e) {
-			logger.debug("DatabaseBackUpScheduler :: deleteFiles ::" + e.getMessage());
+			logger.error("DatabaseBackUpScheduler :: deleteFiles ::" + e.getMessage());
 		}
 	}
 

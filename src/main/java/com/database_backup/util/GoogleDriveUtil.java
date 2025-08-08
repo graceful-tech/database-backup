@@ -21,6 +21,8 @@ import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
 public class GoogleDriveUtil {
@@ -30,6 +32,7 @@ public class GoogleDriveUtil {
 	private static final String APPLICATION_NAME = "Drive Backup App";
 	private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
 	private static final String CREDENTIAL_LOCATION = "C:\\credentials\\service-account-key.json";
+	static final String folderId = "1WXul-mxVSy5jMJPZ51qZtiinfuSfWRDL";
 
 	private static Drive getDriveService() throws Exception {
 		logger.debug("GoogleDriveUtil :: getDriveService :: Entered");
@@ -45,7 +48,6 @@ public class GoogleDriveUtil {
 
 	public static void uploadFileToDrive(String filePath, String fileName) {
 		logger.debug("GoogleDriveUtil :: uploadFileToDrive :: Entered");
-		String folderId = "1WXul-mxVSy5jMJPZ51qZtiinfuSfWRDL";
 
 		try {
 			Drive service = getDriveService();
@@ -68,10 +70,7 @@ public class GoogleDriveUtil {
 	}
 
 	public static void deleteOldFiles() throws Exception {
-		Drive driveService = getDriveService(); // your authenticated Drive service
-		String folderId = "1WXul-mxVSy5jMJPZ51qZtiinfuSfWRDL";
-		// Delete files modified before 1 day
-		Instant cutoffDate = Instant.now().minus(1, ChronoUnit.DAYS);
+		Drive driveService = getDriveService();
 
 		String query = "'" + folderId + "' in parents and trashed = false";
 
@@ -85,28 +84,28 @@ public class GoogleDriveUtil {
 			logger.debug("No files found in the folder.");
 			return;
 		}
-
 		for (File file : files) {
 
 			Instant fileModified = Instant.parse(file.getModifiedTime().toString());
-//			if (fileModified.isBefore(cutoffDate)) {
-			try {
-				driveService.files().update(file.getId(), new File().setTrashed(true)).setSupportsAllDrives(true)
-						.execute();
-//				DateTime createdTime = file.getCreatedTime();
-				logger.debug("Moved to trash: " + file.getName());
+			Instant now = Instant.now();
+			if (fileModified.isBefore(now)) {
+				try {
+					driveService.files().update(file.getId(), new File().setTrashed(true)).setSupportsAllDrives(true)
+							.execute();
+					logger.debug("Moved to trash: " + file.getName());
 //				driveService.files().delete(file.getId()).setSupportsAllDrives(true).execute();
 //				logger.debug("Deleted file: " + file.getName());
-			} catch (GoogleJsonResponseException e) {
-				if (e.getStatusCode() == 404) {
-					logger.warn("File already deleted or not found: " + file.getId() + " (" + file.getName() + ")");
-				} else {
-					throw e; // rethrow other unexpected errors
+				} catch (GoogleJsonResponseException e) {
+					if (e.getStatusCode() == 404) {
+						logger.error(
+								"File already deleted or not found: " + file.getId() + " (" + file.getName() + ")");
+					} else {
+						throw e;
+					}
 				}
+			} else {
+				logger.debug("Keeping file: " + file.getName() + " (Modified: " + fileModified + ")");
 			}
-//			} else {
-//				logger.debug("Keeping file: " + file.getName() + " (Modified: " + fileModified + ")");
-//			}
 		}
 	}
 
