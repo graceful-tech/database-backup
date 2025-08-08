@@ -64,7 +64,7 @@ public class DatabaseBackUpScheduler {
 		}
 	}
 
-	// Method to zip a directory
+//	 Method to zip a directory
 	public static void zipDirectory(String sourcePath, String zipPath) throws IOException {
 		logger.debug("DatabaseBackUpScheduler :: zipDirectory :: Entered");
 
@@ -88,7 +88,7 @@ public class DatabaseBackUpScheduler {
 		logger.debug("DatabaseBackUpScheduler :: zipDirectory :: Exited");
 	}
 
-	@Scheduled(cron = "* */2 * * * *")
+//	@Scheduled(cron = "* */2 * * * *")
 	public void deleteFiles() {
 		try {
 			GoogleDriveUtil.deleteOldFiles();
