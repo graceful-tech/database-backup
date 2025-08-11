@@ -88,7 +88,7 @@ public class GoogleDriveUtil {
 
 			Instant fileModified = Instant.parse(file.getModifiedTime().toString());
 			Instant now = Instant.now();
-			if (fileModified.isBefore(now)) {
+//			if (fileModified.isBefore(now)) {
 				try {
 					driveService.files().update(file.getId(), new File().setTrashed(true)).setSupportsAllDrives(true)
 							.execute();
@@ -103,9 +103,9 @@ public class GoogleDriveUtil {
 						throw e;
 					}
 				}
-			} else {
-				logger.debug("Keeping file: " + file.getName() + " (Modified: " + fileModified + ")");
-			}
+//			} else {
+//				logger.debug("Keeping file: " + file.getName() + " (Modified: " + fileModified + ")");
+//			}
 		}
 	}
 

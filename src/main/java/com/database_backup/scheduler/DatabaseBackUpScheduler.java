@@ -30,8 +30,7 @@ public class DatabaseBackUpScheduler {
 
 	private static final Logger logger = LoggerFactory.getLogger(DatabaseBackUpScheduler.class);
 
-//	@Scheduled(cron = "0 0 9,13,17,21 ? * MON-SAT")
-//	@Scheduled(cron = "* */2 * * * *")
+	@Scheduled(cron = "0 0 9,13,17,22 ? * MON-SAT")
 	public void sendStatusUpdate() throws Exception {
 		logger.debug("DatabaseBackUpScheduler :: sendStatusUpdate :: Entered");
 
@@ -89,12 +88,12 @@ public class DatabaseBackUpScheduler {
 	}
 
 //	@Scheduled(cron = "* */2 * * * *")
-	public void deleteFiles() {
-		try {
-			GoogleDriveUtil.deleteOldFiles();
-		} catch (Exception e) {
-			logger.error("DatabaseBackUpScheduler :: deleteFiles ::" + e.getMessage());
-		}
-	}
+//	public void deleteFiles() {
+//		try {
+//			GoogleDriveUtil.deleteOldFiles();
+//		} catch (Exception e) {
+//			logger.error("DatabaseBackUpScheduler :: deleteFiles ::" + e.getMessage());
+//		}
+//	}
 
 }
