@@ -11,6 +11,8 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
+import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.GoogleCredentials;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,13 +39,15 @@ public class GoogleDriveUtil {
 	private static Drive getDriveService() throws Exception {
 		logger.debug("GoogleDriveUtil :: getDriveService :: Entered");
 
-		GoogleCredential credential = GoogleCredential.fromStream(new FileInputStream(CREDENTIAL_LOCATION))
+		GoogleCredentials credentials = GoogleCredentials.fromStream(new FileInputStream(CREDENTIAL_LOCATION))
 				.createScoped(Collections.singleton(DriveScopes.DRIVE));
+
+		credentials.refreshIfExpired(); // Ensure access token is valid and fresh
 
 		logger.debug("GoogleDriveUtil :: getDriveService :: Exited");
 
-		return new Drive.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, credential)
-				.setApplicationName(APPLICATION_NAME).build();
+		return new Drive.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY,
+				new HttpCredentialsAdapter(credentials)).setApplicationName(APPLICATION_NAME).build();
 	}
 
 	public static void uploadFileToDrive(String filePath, String fileName) {
@@ -89,20 +93,19 @@ public class GoogleDriveUtil {
 			Instant fileModified = Instant.parse(file.getModifiedTime().toString());
 			Instant now = Instant.now();
 //			if (fileModified.isBefore(now)) {
-				try {
-					driveService.files().update(file.getId(), new File().setTrashed(true)).setSupportsAllDrives(true)
-							.execute();
-					logger.debug("Moved to trash: " + file.getName());
+			try {
+				driveService.files().update(file.getId(), new File().setTrashed(true)).setSupportsAllDrives(true)
+						.execute();
+				logger.debug("Moved to trash: " + file.getName());
 //				driveService.files().delete(file.getId()).setSupportsAllDrives(true).execute();
 //				logger.debug("Deleted file: " + file.getName());
-				} catch (GoogleJsonResponseException e) {
-					if (e.getStatusCode() == 404) {
-						logger.error(
-								"File already deleted or not found: " + file.getId() + " (" + file.getName() + ")");
-					} else {
-						throw e;
-					}
+			} catch (GoogleJsonResponseException e) {
+				if (e.getStatusCode() == 404) {
+					logger.error("File already deleted or not found: " + file.getId() + " (" + file.getName() + ")");
+				} else {
+					throw e;
 				}
+			}
 //			} else {
 //				logger.debug("Keeping file: " + file.getName() + " (Modified: " + fileModified + ")");
 //			}
