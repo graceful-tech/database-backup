@@ -11,6 +11,6 @@ import com.database_backup.entity.customer.CustomerEntity;
 @Repository
 public interface CustomerRepository extends JpaRepository<CustomerEntity, Long> {
 
-	@Query(value = "select * from hurecom_v2.customers where is_active = 'Y'", nativeQuery = true)
-	List<CustomerEntity> getAllActiveCustomers();
+	@Query(value = "select tenant from hurecom_v2.customers where is_active = 'Y'", nativeQuery = true)
+	List<String> getAllActiveCustomers();
 }

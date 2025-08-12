@@ -34,9 +34,17 @@ public class DatabaseBackUpScheduler {
 	public void sendStatusUpdate() throws Exception {
 		logger.debug("DatabaseBackUpScheduler :: sendStatusUpdate :: Entered");
 
-		List<CustomerEntity> customers = customerRepository.getAllActiveCustomers();
-		for (CustomerEntity customer : customers) {
-			String dbName = "hurecom_" + customer.getTenant();
+		List<String> customers = customerRepository.getAllActiveCustomers();
+
+		customers.add("v2");
+		customers.add("make_profiles");
+		customers.add("institute");
+
+		for (String customer : customers) {
+			String dbName = "hurecom_" + customer;
+			if (customer.equals("make_profiles") || customer.equals("institute")) {
+				dbName = customer;
+			}
 			String dbUser = "root";
 			String dbPass = "root";
 			String backupPath = "C:\\AutoBackUp\\";
@@ -56,7 +64,7 @@ public class DatabaseBackUpScheduler {
 				zipDirectory(sqlPath, zipPath);
 
 				GoogleDriveUtil.uploadFileToDrive(zipPath, zipFileName);
-				logger.debug("Backup File sent successfully for tenant :" + customer.getTenant());
+				logger.debug("Backup File sent successfully for tenant :" + customer);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
